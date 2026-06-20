@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Summer Strip Booth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan: #8cd2f0;
+      --cyan-strong: #2aa6cf;
+      --cyan-soft: #e7faff;
+      --gold: #ffc83d;
+      --gold-deep: #e89a14;
+      --pink: #ff9eb1;
+      --ink: #1e7192;
+      --shadow: 0 18px 45px rgba(51, 168, 211, 0.2);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Gaegu", "Comic Sans MS", cursive;
+      background-color: #ffffff;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(140, 210, 240, 0.4) 0 14px, transparent 14px 38px),
+        repeating-linear-gradient(90deg, rgba(140, 210, 240, 0.4) 0 14px, transparent 14px 38px);
+      display: flex;
+      justify-content: center;
+      padding: 22px;
+    }
+
+    .app {
+      width: min(100%, 1060px);
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      text-align: center;
+      color: #1599c9;
+      font-size: clamp(3.4rem, 11vw, 7.4rem);
+      line-height: 0.8;
+      letter-spacing: 0;
+      transform: rotate(-1.5deg);
+      text-shadow:
+        0 4px 0 #ffffff,
+        0 10px 18px rgba(31, 111, 145, 0.14);
+    }
+
+    .workspace {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .booth,
+    .strip-panel {
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+    }
+
+    .camera-shell,
+    .strip-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 14px solid #ffffff;
+      background:
+        linear-gradient(#eafaff, #eafaff) padding-box,
+        repeating-linear-gradient(0deg, rgba(140, 210, 240, 0.4) 0 14px, transparent 14px 38px),
+        repeating-linear-gradient(90deg, rgba(140, 210, 240, 0.4) 0 14px, transparent 14px 38px);
+      box-shadow: var(--shadow), 0 0 0 8px rgba(255, 255, 255, 0.82), inset 0 0 0 6px rgba(140, 210, 240, 0.78);
+    }
+
+    .camera-shell {
+      width: min(100%, 680px);
+      aspect-ratio: 4 / 3;
+    }
+
+    .camera-shell::before,
+    .strip-shell::before {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      z-index: 5;
+      pointer-events: none;
+      border: 5px solid rgba(140, 210, 240, 0.9);
+      border-radius: calc(var(--radius) - 8px);
+      box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.55);
+    }
+
+    .camera-shell::after,
+    .strip-shell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+      pointer-events: none;
+      border-radius: inherit;
+      border: 16px solid transparent;
+      background:
+        repeating-linear-gradient(0deg, rgba(140, 210, 240, 0.4) 0 14px, transparent 14px 38px),
+        repeating-linear-gradient(90deg, rgba(140, 210, 240, 0.4) 0 14px, transparent 14px 38px);
+      -webkit-mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+    }
+
+    video,
+    #cameraStickerCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    video {
+      object-fit: cover;
+      transform: scaleX(-1);
+      background: #c9f3ff;
+    }
+
+    canvas {
+      touch-action: none;
+    }
+
+    #cameraStickerCanvas {
+      z-index: 3;
+      cursor: grab;
+    }
+
+    #cameraStickerCanvas.dragging,
+    #stripDecorCanvas.dragging {
+      cursor: grabbing;
+    }
+
+    .camera-message {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+      color: #1f6f91;
+      background: rgba(255, 255, 255, 0.78);
+      font-size: clamp(1.35rem, 3.5vw, 1.9rem);
+    }
+
+    .camera-message.hidden {
+      display: none;
+    }
+
+    .countdown {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 8;
+      display: none;
+      pointer-events: none;
+    }
+
+    .countdown.show {
+      display: block;
+    }
+
+    .countdown-number {
+      width: clamp(74px, 12vw, 118px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      color: #ffffff;
+      font-family: "Fredoka One", system-ui, sans-serif;
+      font-size: clamp(2.6rem, 8vw, 5rem);
+      line-height: 1;
+      border-radius: 999px;
+      background: rgba(255, 200, 61, 0.88);
+      border: 5px solid rgba(255, 255, 255, 0.9);
+      text-shadow: 0 4px 0 rgba(232, 154, 20, 0.7);
+      box-shadow: 0 12px 26px rgba(31, 111, 145, 0.22);
+      animation: pop 0.78s ease-in-out infinite;
+    }
+
+    .flash {
+      position: absolute;
+      inset: 0;
+      z-index: 9;
+      pointer-events: none;
+      background: #ffffff;
+      opacity: 0;
+    }
+
+    .flash.fire {
+      animation: flash 0.48s ease-out;
+    }
+
+    .controls,
+    .strip-tools {
+      width: min(100%, 680px);
+      display: grid;
+      gap: 13px;
+      justify-items: center;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.77);
+      box-shadow: 0 14px 32px rgba(58, 153, 188, 0.14);
+      backdrop-filter: blur(7px);
+    }
+
+    .sticker-bar,
+    .timer-row,
+    .action-row,
+    .progress-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 999px;
+      font-family: "Fredoka One", system-ui, sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(2px) scale(0.98);
+    }
+
+    button:focus-visible {
+      outline: 4px solid rgba(255, 200, 61, 0.55);
+      outline-offset: 3px;
+    }
+
+    .sticker-btn {
+      width: 56px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      border: 4px solid #ffffff;
+      background: #e9faff;
+      box-shadow: 0 8px 0 rgba(51, 168, 211, 0.18);
+      font-size: 1.65rem;
+    }
+
+    .sticker-btn.selected {
+      border-color: var(--gold);
+      background: #fff8d9;
+      box-shadow: 0 8px 0 rgba(239, 159, 22, 0.35), 0 0 0 5px rgba(255, 200, 61, 0.22);
+      transform: translateY(-2px);
+    }
+
+    .timer-btn {
+      min-width: 78px;
+      padding: 0 22px;
+      color: #1f6f91;
+      background: #e9faff;
+      box-shadow: inset 0 0 0 3px #ffffff, 0 7px 0 rgba(51, 168, 211, 0.18);
+    }
+
+    .timer-btn.active {
+      color: #ffffff;
+      background: var(--cyan-strong);
+      box-shadow: inset 0 0 0 3px #ffffff, 0 7px 0 rgba(31, 111, 145, 0.3);
+    }
+
+    .action-btn {
+      min-width: 132px;
+      padding: 0 24px;
+      color: #ffffff;
+      background: linear-gradient(180deg, #ffd957, var(--gold));
+      box-shadow: 0 8px 0 var(--gold-deep), 0 14px 25px rgba(239, 159, 22, 0.24);
+      text-shadow: 0 2px 0 rgba(183, 111, 0, 0.2);
+    }
+
+    .action-btn.secondary {
+      color: #1f6f91;
+      background: linear-gradient(180deg, #ffffff, #dff7ff);
+      box-shadow: 0 8px 0 rgba(51, 168, 211, 0.22), 0 14px 25px rgba(58, 153, 188, 0.14);
+      text-shadow: none;
+    }
+
+    .action-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+      transform: none;
+      filter: saturate(0.75);
+    }
+
+    .progress-dot {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      color: #1f6f91;
+      background: #ffffff;
+      box-shadow: inset 0 0 0 4px rgba(140, 210, 240, 0.7);
+      font-family: "Fredoka One", system-ui, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    .progress-dot.done {
+      color: #ffffff;
+      background: var(--pink);
+      box-shadow: inset 0 0 0 4px #ffffff, 0 6px 0 rgba(255, 126, 151, 0.25);
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 0;
+      color: #277d9c;
+      text-align: center;
+      font-family: "Gaegu", cursive;
+      font-size: 1.25rem;
+      line-height: 1.05;
+    }
+
+    .strip-panel {
+      width: 100%;
+    }
+
+    .strip-shell {
+      width: min(100%, 330px);
+      min-height: 620px;
+      display: grid;
+      place-items: center;
+    }
+
+    .strip-empty {
+      padding: 26px;
+      text-align: center;
+      font-size: 1.6rem;
+      line-height: 1.05;
+      color: #2a83a4;
+    }
+
+    .strip-stage {
+      position: relative;
+      width: min(100%, 270px);
+      aspect-ratio: 360 / 1020;
+      display: none;
+      filter: drop-shadow(0 18px 24px rgba(31, 111, 145, 0.16));
+    }
+
+    .strip-stage.ready {
+      display: block;
+    }
+
+    #stripCanvas,
+    #stripDecorCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #stripDecorCanvas {
+      z-index: 2;
+      cursor: grab;
+    }
+
+    .strip-tools {
+      display: none;
+      width: min(100%, 330px);
+    }
+
+    .strip-tools.ready {
+      display: grid;
+    }
+
+    @keyframes pop {
+      0% {
+        transform: scale(0.75) rotate(-4deg);
+      }
+      45% {
+        transform: scale(1.07) rotate(3deg);
+      }
+      100% {
+        transform: scale(0.92) rotate(0deg);
+      }
+    }
+
+    @keyframes flash {
+      0% {
+        opacity: 0;
+      }
+      18% {
+        opacity: 0.96;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 880px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .strip-panel {
+        max-width: 680px;
+      }
+
+      .strip-shell,
+      .strip-tools {
+        width: min(100%, 360px);
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 14px;
+      }
+
+      h1 {
+        font-size: clamp(3rem, 16vw, 4.8rem);
+      }
+
+      .camera-shell,
+      .strip-shell {
+        border-width: 9px;
+        border-radius: 22px;
+      }
+
+      .countdown {
+        top: 14px;
+        right: 14px;
+      }
+
+      .controls,
+      .strip-tools {
+        padding: 14px;
+      }
+
+      .sticker-btn {
+        width: 49px;
+        height: 49px;
+        font-size: 1.45rem;
+      }
+
+      .action-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Summer strip photobooth">
+    <h1>🏖️ SUMMER IS HERE!</h1>
+
+    <div class="workspace">
+      <section class="booth" aria-label="Camera booth">
+        <div class="camera-shell" id="cameraShell">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="cameraStickerCanvas" aria-label="Draggable camera stickers"></canvas>
+          <div class="camera-message" id="cameraMessage">Asking for camera permission...</div>
+          <div class="countdown" id="countdown" aria-live="polite">
+            <div class="countdown-number" id="countdownNumber">5</div>
+          </div>
+          <div class="flash" id="flash"></div>
+        </div>
+
+        <div class="controls">
+          <div class="sticker-bar" aria-label="Sticker choices">
+            <button class="sticker-btn" type="button" data-sticker="🐚" aria-label="Add shell sticker">🐚</button>
+            <button class="sticker-btn" type="button" data-sticker="🌊" aria-label="Add wave sticker">🌊</button>
+            <button class="sticker-btn" type="button" data-sticker="🐠" aria-label="Add fish sticker">🐠</button>
+            <button class="sticker-btn" type="button" data-sticker="🐬" aria-label="Add dolphin sticker">🐬</button>
+            <button class="sticker-btn" type="button" data-sticker="🍉" aria-label="Add watermelon sticker">🍉</button>
+            <button class="sticker-btn" type="button" data-sticker="🌞" aria-label="Add sun sticker">🌞</button>
+            <button class="sticker-btn" type="button" data-sticker="🧉" aria-label="Add drink sticker">🧉</button>
+          </div>
+
+          <div class="timer-row" aria-label="Timer duration">
+            <button class="timer-btn" type="button" data-seconds="3">3s</button>
+            <button class="timer-btn active" type="button" data-seconds="5">5s</button>
+            <button class="timer-btn" type="button" data-seconds="10">10s</button>
+          </div>
+
+          <div class="progress-row" aria-label="Photo progress">
+            <span class="progress-dot" data-shot="0">1</span>
+            <span class="progress-dot" data-shot="1">2</span>
+            <span class="progress-dot" data-shot="2">3</span>
+          </div>
+
+          <div class="action-row">
+            <button class="action-btn" type="button" id="snapBtn">Snap Strip</button>
+            <button class="action-btn secondary" type="button" id="clearBtn">Clear Stickers</button>
+            <button class="action-btn secondary" type="button" id="retakeBtn" disabled>Retake</button>
+            <button class="action-btn secondary" type="button" id="downloadBtn" disabled>Download</button>
+          </div>
+
+          <p class="status" id="status" role="status">Add little stickers, drag them around, then snap 3 photos.</p>
+        </div>
+      </section>
+
+      <aside class="strip-panel" aria-label="Photo strip preview">
+        <div class="strip-shell">
+          <div class="strip-empty" id="stripEmpty">Your photo strip will show up here after 3 snaps.</div>
+          <div class="strip-stage" id="stripStage">
+            <canvas id="stripCanvas"></canvas>
+            <canvas id="stripDecorCanvas" aria-label="Draggable strip stickers"></canvas>
+          </div>
+        </div>
+        <div class="strip-tools" id="stripTools">
+          <p class="status">Tap stickers again to decorate the finished strip.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const video = document.getElementById("video");
+    const cameraShell = document.getElementById("cameraShell");
+    const cameraCanvas = document.getElementById("cameraStickerCanvas");
+    const cameraCtx = cameraCanvas.getContext("2d");
+    const stripCanvas = document.getElementById("stripCanvas");
+    const stripCtx = stripCanvas.getContext("2d");
+    const stripDecorCanvas = document.getElementById("stripDecorCanvas");
+    const stripDecorCtx = stripDecorCanvas.getContext("2d");
+    const stripStage = document.getElementById("stripStage");
+    const stripEmpty = document.getElementById("stripEmpty");
+    const stripTools = document.getElementById("stripTools");
+    const cameraMessage = document.getElementById("cameraMessage");
+    const countdown = document.getElementById("countdown");
+    const countdownNumber = document.getElementById("countdownNumber");
+    const flash = document.getElementById("flash");
+    const snapBtn = document.getElementById("snapBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const retakeBtn = document.getElementById("retakeBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const statusText = document.getElementById("status");
+    const stickerButtons = Array.from(document.querySelectorAll(".sticker-btn"));
+    const timerButtons = Array.from(document.querySelectorAll(".timer-btn"));
+    const progressDots = Array.from(document.querySelectorAll(".progress-dot"));
+
+    const stripSize = { width: 360, height: 1020 };
+    const photos = [];
+    const cameraStickers = [];
+    const stripStickers = [];
+    let selectedSeconds = 5;
+    let activeSticker = null;
+    let activeCanvas = null;
+    let isCountingDown = false;
+    let stripReady = false;
+
+    function setupCanvas(canvas, ctx, width, height) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function resizeCanvases() {
+      const cameraRect = cameraShell.getBoundingClientRect();
+      setupCanvas(cameraCanvas, cameraCtx, cameraRect.width, cameraRect.height);
+      drawCameraStickers();
+
+      const stripRect = stripStage.getBoundingClientRect();
+      if (stripRect.width && stripRect.height) {
+        setupCanvas(stripCanvas, stripCtx, stripRect.width, stripRect.height);
+        setupCanvas(stripDecorCanvas, stripDecorCtx, stripRect.width, stripRect.height);
+        drawStripBase();
+        drawStripDecorations();
+      }
+    }
+
+    function stickerFont(size) {
+      return `${size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    }
+
+    function drawSticker(ctx, sticker) {
+      ctx.save();
+      ctx.translate(sticker.x, sticker.y);
+      ctx.rotate(sticker.rotation || 0);
+      ctx.font = stickerFont(sticker.size);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(31, 111, 145, 0.28)";
+      ctx.shadowBlur = sticker.size * 0.1;
+      ctx.shadowOffsetY = sticker.size * 0.05;
+      ctx.fillText(sticker.emoji, 0, 0);
+      ctx.restore();
+    }
+
+    function drawCameraStickers() {
+      const width = cameraCanvas.clientWidth;
+      const height = cameraCanvas.clientHeight;
+      cameraCtx.clearRect(0, 0, width, height);
+      cameraStickers.forEach((sticker) => drawSticker(cameraCtx, sticker));
+    }
+
+    function drawStripDecorations() {
+      const width = stripDecorCanvas.clientWidth;
+      const height = stripDecorCanvas.clientHeight;
+      stripDecorCtx.clearRect(0, 0, width, height);
+      stripStickers.forEach((sticker) => drawSticker(stripDecorCtx, sticker));
+    }
+
+    function makeSticker(emoji, canvas) {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      return {
+        emoji,
+        x: width / 2 + (Math.random() - 0.5) * width * 0.28,
+        y: height / 2 + (Math.random() - 0.5) * height * 0.28,
+        size: Math.max(28, Math.min(width, height) * 0.12),
+        rotation: (Math.random() - 0.5) * 0.3
+      };
+    }
+
+    function addSticker(emoji, button) {
+      stickerButtons.forEach((item) => item.classList.toggle("selected", item === button));
+      if (stripReady) {
+        stripStickers.push(makeSticker(emoji, stripDecorCanvas));
+        drawStripDecorations();
+        statusText.textContent = `${emoji} added to the strip. Drag it wherever.`;
+      } else {
+        cameraStickers.push(makeSticker(emoji, cameraCanvas));
+        drawCameraStickers();
+        statusText.textContent = `${emoji} added. Drag it around the frame.`;
+      }
+    }
+
+    function getPointer(canvas, event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function findSticker(stickers, point) {
+      for (let i = stickers.length - 1; i >= 0; i -= 1) {
+        const sticker = stickers[i];
+        const distance = Math.hypot(point.x - sticker.x, point.y - sticker.y);
+        if (distance <= sticker.size * 0.62) {
+          return { sticker, index: i };
+        }
+      }
+      return null;
+    }
+
+    function startDrag(canvas, stickers, drawFn, event) {
+      const point = getPointer(canvas, event);
+      const found = findSticker(stickers, point);
+      if (!found) {
+        return;
+      }
+
+      const [sticker] = stickers.splice(found.index, 1);
+      stickers.push(sticker);
+      activeSticker = {
+        sticker,
+        stickers,
+        drawFn,
+        offsetX: point.x - sticker.x,
+        offsetY: point.y - sticker.y
+      };
+      activeCanvas = canvas;
+      canvas.classList.add("dragging");
+      canvas.setPointerCapture(event.pointerId);
+      drawFn();
+    }
+
+    function moveDrag(event) {
+      if (!activeSticker || !activeCanvas) {
+        return;
+      }
+
+      const point = getPointer(activeCanvas, event);
+      activeSticker.sticker.x = point.x - activeSticker.offsetX;
+      activeSticker.sticker.y = point.y - activeSticker.offsetY;
+      activeSticker.drawFn();
+    }
+
+    function endDrag(event) {
+      if (!activeCanvas) {
+        return;
+      }
+
+      activeCanvas.classList.remove("dragging");
+      if (activeCanvas.hasPointerCapture(event.pointerId)) {
+        activeCanvas.releasePointerCapture(event.pointerId);
+      }
+      activeCanvas = null;
+      activeSticker = null;
+    }
+
+    async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        cameraMessage.textContent = "This browser does not support camera access.";
+        snapBtn.disabled = true;
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 960 }
+          },
+          audio: false
+        });
+
+        video.srcObject = stream;
+        cameraMessage.classList.add("hidden");
+        statusText.textContent = "Camera ready. Add stickers or snap your strip.";
+      } catch (error) {
+        cameraMessage.textContent = "Camera access was blocked. Please allow camera permission and reload to use the booth.";
+        statusText.textContent = "Camera permission is needed before snapping a strip.";
+        snapBtn.disabled = true;
+      }
+    }
+
+    function selectTimer(button) {
+      selectedSeconds = Number(button.dataset.seconds);
+      timerButtons.forEach((item) => item.classList.toggle("active", item === button));
+      statusText.textContent = `${selectedSeconds} second timer selected.`;
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function pulseFlash() {
+      flash.classList.remove("fire");
+      flash.offsetHeight;
+      flash.classList.add("fire");
+    }
+
+    async function showCountdown(shotNumber) {
+      countdown.classList.add("show");
+      for (let number = selectedSeconds; number > 0; number -= 1) {
+        countdownNumber.textContent = number;
+        countdownNumber.style.animation = "none";
+        countdownNumber.offsetHeight;
+        countdownNumber.style.animation = "";
+        statusText.textContent = `Photo ${shotNumber}/3 in ${number}...`;
+        await wait(1000);
+      }
+      countdown.classList.remove("show");
+    }
+
+    function drawMirroredVideo(ctx, x, y, width, height) {
+      const videoRatio = video.videoWidth / video.videoHeight;
+      const targetRatio = width / height;
+      let sourceWidth = video.videoWidth;
+      let sourceHeight = video.videoHeight;
+      let sourceX = 0;
+      let sourceY = 0;
+
+      if (videoRatio > targetRatio) {
+        sourceWidth = video.videoHeight * targetRatio;
+        sourceX = (video.videoWidth - sourceWidth) / 2;
+      } else {
+        sourceHeight = video.videoWidth / targetRatio;
+        sourceY = (video.videoHeight - sourceHeight) / 2;
+      }
+
+      ctx.save();
+      ctx.translate(x + width, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+      ctx.restore();
+    }
+
+    function drawPhotoFrame(ctx, x, y, width, height) {
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x - 8, y - 8, width + 16, height + 16);
+      ctx.strokeStyle = "rgba(140, 210, 240, 0.92)";
+      ctx.lineWidth = 5;
+      ctx.strokeRect(x - 2.5, y - 2.5, width + 5, height + 5);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x + 10, y + 10, width - 20, height - 20);
+      ctx.restore();
+    }
+
+    function captureSinglePhoto() {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 900;
+      canvas.height = 675;
+      drawMirroredVideo(ctx, 0, 0, canvas.width, canvas.height);
+
+      const scaleX = canvas.width / cameraCanvas.clientWidth;
+      const scaleY = canvas.height / cameraCanvas.clientHeight;
+      cameraStickers.forEach((sticker) => {
+        drawSticker(ctx, {
+          emoji: sticker.emoji,
+          x: sticker.x * scaleX,
+          y: sticker.y * scaleY,
+          size: sticker.size * Math.min(scaleX, scaleY),
+          rotation: sticker.rotation
+        });
+      });
+
+      return canvas;
+    }
+
+    function drawPlaid(ctx, width, height) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(140, 210, 240, 0.4)";
+      for (let x = 0; x < width; x += 38) {
+        ctx.fillRect(x, 0, 14, height);
+      }
+      for (let y = 0; y < height; y += 38) {
+        ctx.fillRect(0, y, width, 14);
+      }
+    }
+
+    function drawStripBase() {
+      if (!stripReady) {
+        return;
+      }
+
+      const width = stripCanvas.clientWidth;
+      const height = stripCanvas.clientHeight;
+      const scale = width / stripSize.width;
+      stripCtx.clearRect(0, 0, width, height);
+      stripCtx.save();
+      stripCtx.scale(scale, scale);
+      drawPlaid(stripCtx, stripSize.width, stripSize.height);
+
+      stripCtx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      stripCtx.fillRect(20, 20, 320, 980);
+
+      photos.forEach((photo, index) => {
+        const x = 42;
+        const y = 54 + index * 298;
+        const w = 276;
+        const h = 207;
+        drawPhotoFrame(stripCtx, x, y, w, h);
+        stripCtx.drawImage(photo, x, y, w, h);
+      });
+
+      stripCtx.fillStyle = "#1599c9";
+      stripCtx.font = '42px "Gaegu", cursive';
+      stripCtx.textAlign = "center";
+      stripCtx.fillText("summer is here", 180, 954);
+      stripCtx.restore();
+    }
+
+    function updateProgress() {
+      progressDots.forEach((dot, index) => {
+        dot.classList.toggle("done", index < photos.length);
+      });
+    }
+
+    async function snapStrip() {
+      if (isCountingDown || snapBtn.disabled) {
+        return;
+      }
+
+      if (!video.videoWidth || !video.videoHeight) {
+        statusText.textContent = "Camera is still warming up. Try again in a moment.";
+        return;
+      }
+
+      isCountingDown = true;
+      stripReady = false;
+      photos.length = 0;
+      stripStickers.length = 0;
+      stripStage.classList.remove("ready");
+      stripTools.classList.remove("ready");
+      stripEmpty.style.display = "block";
+      downloadBtn.disabled = true;
+      retakeBtn.disabled = true;
+      snapBtn.disabled = true;
+      updateProgress();
+
+      for (let shot = 1; shot <= 3; shot += 1) {
+        await showCountdown(shot);
+        photos.push(captureSinglePhoto());
+        updateProgress();
+        pulseFlash();
+        statusText.textContent = `Photo ${shot}/3 captured!`;
+        await wait(700);
+      }
+
+      stripReady = true;
+      stripEmpty.style.display = "none";
+      stripStage.classList.add("ready");
+      stripTools.classList.add("ready");
+      resizeCanvases();
+      downloadBtn.disabled = false;
+      retakeBtn.disabled = false;
+      snapBtn.disabled = false;
+      isCountingDown = false;
+      statusText.textContent = "Strip ready. Tap stickers to decorate it, then download.";
+    }
+
+    function clearStickers() {
+      if (stripReady) {
+        stripStickers.length = 0;
+        drawStripDecorations();
+        statusText.textContent = "Strip decorations cleared.";
+      } else {
+        cameraStickers.length = 0;
+        drawCameraStickers();
+        statusText.textContent = "Camera stickers cleared.";
+      }
+      stickerButtons.forEach((button) => button.classList.remove("selected"));
+    }
+
+    function retakeStrip() {
+      photos.length = 0;
+      stripStickers.length = 0;
+      stripReady = false;
+      stripStage.classList.remove("ready");
+      stripTools.classList.remove("ready");
+      stripEmpty.style.display = "block";
+      downloadBtn.disabled = true;
+      retakeBtn.disabled = true;
+      updateProgress();
+      statusText.textContent = "Ready for a fresh 3-photo strip.";
+    }
+
+    function buildDownloadCanvas() {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = stripSize.width;
+      canvas.height = stripSize.height;
+      drawPlaid(ctx, stripSize.width, stripSize.height);
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.fillRect(20, 20, 320, 980);
+
+      photos.forEach((photo, index) => {
+        const x = 42;
+        const y = 54 + index * 298;
+        const w = 276;
+        const h = 207;
+        drawPhotoFrame(ctx, x, y, w, h);
+        ctx.drawImage(photo, x, y, w, h);
+      });
+
+      ctx.fillStyle = "#1599c9";
+      ctx.font = '42px "Gaegu", cursive';
+      ctx.textAlign = "center";
+      ctx.fillText("summer is here", 180, 954);
+
+      const scale = stripSize.width / stripDecorCanvas.clientWidth;
+      stripStickers.forEach((sticker) => {
+        drawSticker(ctx, {
+          emoji: sticker.emoji,
+          x: sticker.x * scale,
+          y: sticker.y * scale,
+          size: sticker.size * scale,
+          rotation: sticker.rotation
+        });
+      });
+
+      return canvas;
+    }
+
+    function downloadStrip() {
+      if (!stripReady) {
+        statusText.textContent = "Snap a 3-photo strip first.";
+        return;
+      }
+
+      const canvas = buildDownloadCanvas();
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          statusText.textContent = "Download failed. Try again.";
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `summer-booth-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        statusText.textContent = "Download started.";
+      }, "image/png");
+    }
+
+    stickerButtons.forEach((button) => {
+      button.addEventListener("click", () => addSticker(button.dataset.sticker, button));
+    });
+
+    timerButtons.forEach((button) => {
+      button.addEventListener("click", () => selectTimer(button));
+    });
+
+    cameraCanvas.addEventListener("pointerdown", (event) => startDrag(cameraCanvas, cameraStickers, drawCameraStickers, event));
+    cameraCanvas.addEventListener("pointermove", moveDrag);
+    cameraCanvas.addEventListener("pointerup", endDrag);
+    cameraCanvas.addEventListener("pointercancel", endDrag);
+    stripDecorCanvas.addEventListener("pointerdown", (event) => startDrag(stripDecorCanvas, stripStickers, drawStripDecorations, event));
+    stripDecorCanvas.addEventListener("pointermove", moveDrag);
+    stripDecorCanvas.addEventListener("pointerup", endDrag);
+    stripDecorCanvas.addEventListener("pointercancel", endDrag);
+
+    clearBtn.addEventListener("click", clearStickers);
+    snapBtn.addEventListener("click", snapStrip);
+    retakeBtn.addEventListener("click", retakeStrip);
+    downloadBtn.addEventListener("click", downloadStrip);
+    window.addEventListener("resize", resizeCanvases);
+    video.addEventListener("loadedmetadata", resizeCanvases);
+
+    resizeCanvases();
+    startCamera();
+  </script>
+</body>
+</html>
