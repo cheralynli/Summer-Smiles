@@ -1,4 +1,4 @@
-# Summer Strip Booth
+# Summer Smiles
 
 A cute beach-themed photobooth web app that takes a 3-photo strip, lets you decorate it with draggable emoji stickers, and downloads the final strip as a PNG.
 
